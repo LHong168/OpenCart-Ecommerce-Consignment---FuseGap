@@ -199,7 +199,7 @@ class Product extends \Opencart\System\Engine\Controller {
 		}
 
 		$data['action'] = $this->url->link('catalog/product.list', 'user_token=' . $this->session->data['user_token'] . $url);
-
+		
 		$data['products'] = [];
 
 		$filter_data = [
@@ -241,6 +241,20 @@ class Product extends \Opencart\System\Engine\Controller {
 				}
 			}
 
+			//get category
+			$categories = $this->model_catalog_product->getCategoryByProductId($result['product_id']);
+
+			// Initialize an empty array to hold category paths
+			$category_paths = array();
+			
+			// Loop through categories and build category paths
+			foreach ($categories as $category) {
+				$category_paths[] = $category['category_path'];
+			}
+			
+			// Join category paths with a separator (e.g., comma)
+			$category_list = implode(', ', $category_paths);
+
 			$data['products'][] = [
 				'product_id' => $result['product_id'],
 				'image'      => $image,
@@ -250,6 +264,7 @@ class Product extends \Opencart\System\Engine\Controller {
 				'special'    => $special,
 				'quantity'   => $result['quantity'],
 				'status'     => $result['status'],
+				'categories' => $category_list,
 				'edit'       => $this->url->link('catalog/product.form', 'user_token=' . $this->session->data['user_token'] . '&product_id=' . $result['product_id'] . ($result['master_id'] ? '&master_id=' . $result['master_id'] : '') . $url),
 				'variant'    => (!$result['master_id'] ? $this->url->link('catalog/product.form', 'user_token=' . $this->session->data['user_token'] . '&master_id=' . $result['product_id'] . $url) : '')
 			];

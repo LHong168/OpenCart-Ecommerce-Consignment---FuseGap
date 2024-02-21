@@ -844,6 +844,18 @@ class Product extends \Opencart\System\Engine\Model {
 		return $query->row;
 	}
 
+	public function getCategoryByProductId(int $product_id): array {
+		$query = $this->db->query(
+			"SELECT DISTINCT pc.product_id, pc.category_id, GROUP_CONCAT(cd.name ORDER BY cd.category_id SEPARATOR ', ') AS category_path
+			FROM " . DB_PREFIX . "product_to_category AS pc
+			INNER JOIN " . DB_PREFIX . "category_description AS cd ON pc.category_id = cd.category_id
+			WHERE pc.product_id = '" . (int)$product_id . "'
+			AND cd.language_id = '" . (int)$this->config->get('config_language_id') . "'
+			GROUP BY pc.product_id"
+    	);
+		return $query->rows;
+	}
+
 	/**
 	 * @param array $data
 	 *

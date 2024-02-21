@@ -45,6 +45,7 @@ $_['column_ip']               = 'IP';
 $_['column_store']            = 'Store';
 $_['column_country']          = 'Country';
 $_['column_date_added']       = 'Date Added';
+$_['column_category']         = 'Category'; //added this 21/feb/2024
 $_['column_action']           = 'Action';
 
 // Entry
