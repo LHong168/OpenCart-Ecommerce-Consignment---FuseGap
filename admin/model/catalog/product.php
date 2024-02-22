@@ -844,25 +844,33 @@ class Product extends \Opencart\System\Engine\Model {
 		return $query->row;
 	}
 
-	public function getCategoryByProductId(int $product_id): array {
-		$query = $this->db->query(
-			"SELECT DISTINCT pc.product_id, pc.category_id, GROUP_CONCAT(cd.name ORDER BY cd.category_id SEPARATOR ', ') AS category_path
-			FROM " . DB_PREFIX . "product_to_category AS pc
-			INNER JOIN " . DB_PREFIX . "category_description AS cd ON pc.category_id = cd.category_id
-			WHERE pc.product_id = '" . (int)$product_id . "'
-			AND cd.language_id = '" . (int)$this->config->get('config_language_id') . "'
-			GROUP BY pc.product_id"
-    	);
-		return $query->rows;
-	}
-
 	/**
 	 * @param array $data
 	 *
 	 * @return array
 	 */
 	public function getProducts(array $data = []): array {
-		$sql = "SELECT * FROM `" . DB_PREFIX . "product` p LEFT JOIN `" . DB_PREFIX . "product_description` pd ON (p.`product_id` = pd.`product_id`) WHERE pd.`language_id` = '" . (int)$this->config->get('config_language_id') . "'";
+		//$sql = "SELECT * FROM `" . DB_PREFIX . "product` p LEFT JOIN `" . DB_PREFIX . "product_description` pd ON (p.`product_id` = pd.`product_id`) WHERE pd.`language_id` = '" . (int)$this->config->get('config_language_id') . "'";
+		
+		//modify the query to have category and category name
+		$sql = "
+			SELECT 
+				p.*, 
+				pd.*, 
+				GROUP_CONCAT(DISTINCT cd.name ORDER BY cd.category_id SEPARATOR ', ') AS category
+			FROM 
+				`" . DB_PREFIX . "product` p 
+			LEFT JOIN 
+				`" . DB_PREFIX . "product_description` pd ON (p.`product_id` = pd.`product_id`)
+			LEFT JOIN 
+				`" . DB_PREFIX . "product_to_category` pc ON (p.`product_id` = pc.`product_id`)
+			LEFT JOIN 
+				`" . DB_PREFIX . "category_description` cd ON (pc.`category_id` = cd.`category_id`)
+			WHERE 
+				pd.`language_id` = '" . (int)$this->config->get('config_language_id') . "'
+		";
+
+
 
 		if (!empty($data['filter_master_id'])) {
 			$sql .= " AND p.`master_id` = '" . (int)$data['filter_master_id'] . "'";
@@ -888,7 +896,14 @@ class Product extends \Opencart\System\Engine\Model {
 			$sql .= " AND p.`status` = '" . (int)$data['filter_status'] . "'";
 		}
 
-		$sql .= " GROUP BY p.`product_id`";
+
+		//Added category filter
+		if (isset($data['filter_category']) && $data['filter_category'] !== '') {
+			$sql .= " AND cd.`name` LIKE '" . $this->db->escape((string)$data['filter_category'] . '%') . "'";
+		}
+
+		//$sql .= " GROUP BY p.`product_id`";
+		$sql .= "GROUP BY p.`product_id`";
 
 		$sort_data = [
 			'pd.name',
@@ -896,7 +911,8 @@ class Product extends \Opencart\System\Engine\Model {
 			'p.price',
 			'p.quantity',
 			'p.status',
-			'p.sort_order'
+			'p.sort_order',
+			'cd.name' //added this to sort ASC and DESC
 		];
 
 		if (isset($data['sort']) && in_array($data['sort'], $sort_data)) {
@@ -968,6 +984,19 @@ class Product extends \Opencart\System\Engine\Model {
 
 		return $product_category_data;
 	}
+
+	//added this to add category column
+	public function getCategoryByProductId(int $product_id): array {
+		$query = $this->db->query(
+			"SELECT DISTINCT pc.product_id, pc.category_id, GROUP_CONCAT(cd.name ORDER BY cd.category_id SEPARATOR ', ') AS category_path
+			FROM " . DB_PREFIX . "product_to_category AS pc
+			INNER JOIN " . DB_PREFIX . "category_description AS cd ON pc.category_id = cd.category_id
+			WHERE pc.product_id = '" . (int)$product_id . "'
+			AND cd.language_id = '" . (int)$this->config->get('config_language_id') . "'
+			GROUP BY pc.product_id"
+    	);
+		return $query->rows;
+	}	
 
 	/**
 	 * @param int $product_id
